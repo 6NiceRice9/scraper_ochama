@@ -11,12 +11,17 @@ with open('C:\\Users\\NiceRice\\git\\scraper_ochama\\scraper_ochama\\ochama_stru
     all_in: list = json.load(f)       # convert
     all_in: dict = all_in[:]          # convert
 
+#### organise structure
 # flatten
 all: pd.DataFrame = pd.json_normalize(all_in)
 # get parents overview
 parents_overview: pd.DataFrame = all.loc[all['parentId'] == 0]
 # child overview
 child_overview = all[all['parentId'].isin(parents_overview['id'])]
+# sub_child_sorting_overview
+sub_child_sorting_overview = all[all['parentId'].isin(child_overview['id'])]
+
+
 
 
 
