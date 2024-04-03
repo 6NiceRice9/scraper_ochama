@@ -40,8 +40,20 @@ with open(tree_path, 'r') as f:
 
 # create a dictionary of all groups
 nested_all: dict = group_by_level(tree_data, 3)  # asumption total of 3 levels deep
+# separate 3 levels
+level1 = nested_all[1]
+level2 = nested_all[2]
+level3 = nested_all[3]
 # create connceted groups
 groups_connected: dict = all_group_ids(nested_all)
-print(groups_connected)
 
-# %%
+# %% getting the name based on level1 - level2 -level3 and id
+
+def name(level, id):
+    try:
+        name = level[level["id"] == id]['name']
+        return name.values[0]
+    except IndexError:
+        return None
+
+print(name(level2, 4795))
