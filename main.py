@@ -32,6 +32,29 @@ def all_group_ids(nested_all: dict) -> dict:
     return groups_connected
 
 
+# %% getting the names
+def name_by_id(nested_all, id):  # get the name based on level1 - level2 -level3 and of the level
+    try:
+        try:
+            name = nested_all[1][nested_all[1]["id"] == id]['name']
+            return name.values[0]
+        except:
+            pass
+        try:
+            name = nested_all[2][nested_all[2]["id"] == id]['name']
+            return name.values[0]
+        except:
+            pass
+        try:
+            name = nested_all[3][nested_all[3]["id"] == id]['name']
+            return name.values[0]
+        except:
+            pass
+        return name.values[0]
+    except IndexError:
+        return None
+
+
 ################# Start of the main program #################
 # Load the tree structure from a JSON file.
 tree_path: str = 'ochama_structure.txt'  # Define the file path.
@@ -47,13 +70,7 @@ level3 = nested_all[3]
 # create connceted groups
 groups_connected: dict = all_group_ids(nested_all)
 
-# %% getting the name based on level1 - level2 -level3 and id
 
-def name(level, id):
-    try:
-        name = level[level["id"] == id]['name']
-        return name.values[0]
-    except IndexError:
-        return None
+# %% make dictionary
 
-print(name(level2, 4795))
+print(name_by_id(nested_all, 5367))
