@@ -34,11 +34,11 @@ def link_tree(id_group: int) -> tuple:
 #     return groups_connected
 
 
-# % getting the valeus by id
-def all_values_by_id(id: int, header: str):
+# % getting the valeus by id_any
+def all_values_by_id(id_any: int, header: str):
     """
     Function to get the values of a column by ID.
-    :param id: id_group from the deepest level
+    :param id_any: id_group from the deepest level
     :param header: column header
     :return header value at given id
     """
@@ -48,7 +48,7 @@ def all_values_by_id(id: int, header: str):
         df = nested_all.get(i)  # Safely get the DataFrame for key `i`
         if df is not None:
             # Attempt to filter the DataFrame based on the `id`
-            filtered_df = df[df["id"] == id]
+            filtered_df = df[df["id"] == id_any]
             if not filtered_df.empty:
                 # If the filtered DataFrame is not empty, attempt to get the value
                 value = filtered_df[header].iloc[0]
@@ -66,7 +66,7 @@ with open(tree_path, 'r') as f:
 nested_all: dict = group_by_level(tree_data, 3)  # asumption total of 3 levels deep
 
 # create connceted groups
-#groups_connected: dict = all_group_ids(nested_all)
+# groups_connected: dict = all_group_ids(nested_all)
 
 # % make dictionary
 
@@ -99,19 +99,21 @@ for i in range(1, len(ids_group_all)):
     rows_template.append(row_template)
 # Convert the list of dictionaries to a DataFrame
 overview_template = pd.DataFrame(rows_template,
-                                 columns=["id_parent", "id_child", "id_group", "name_parent", "name_child", "name_group", "url"])
+                                 columns=["id_parent", "id_child", "id_group", "name_parent", "name_child",
+                                          "name_group", "url"])
 overview_template.fillna(0, inplace=True)  # replaceing NaN
 overview_template["id_parent"] = overview_template["id_parent"].astype(int)  # convert to int
 overview_template["id_child"] = overview_template["id_child"].astype(int)  # convert to int
 
+
 #  %%%% request overview_template table
-#print(overview_template["name_group"].loc[overview_template["id_group"] == 5121])
+# print(overview_template["name_group"].loc[overview_template["id_group"] == 5121])
 
 # filter for value
-#search_value = "Fresh"
-#filtered_df = overview_template[overwiew['name_child'] == search_value]
+# search_value = "Fresh"
+# filtered_df = overview_template[overwiew['name_child'] == search_value]
 #  %%%%% request website
-def header_request(id_group, page=1, pageSize=1000, sortType="sort_totalsales15_desc"):
+def header_request(id_group, page=1, pageSize=1000, sortType="sort_dredisprice_asc"):
     """
     :param id_group:
     :param page:
@@ -135,18 +137,37 @@ def header_request(id_group, page=1, pageSize=1000, sortType="sort_totalsales15_
                             json=data)  # the right way to send POST requests
     return request.json()
 
+
 #  %%% saving request data
 # preparing request data
 #  %%% ID_GROUP HAS TO BE ADJUSTED
-received_raw_data = header_request(5637, 1, 100, "rank")
+# received_raw_data = header_request(5637, 1, 100, "rank")
 
-#%% loop over all "id_groups"
-for i in range(1, 6):
-    received_raw_data = header_request(i, 1, 100, "rank")
+# %% loop over all "id_groups"
+test = []
+def map_category_generater():
+    mapping = {"Fresh": 4710, "World Food": 4712, "Electronics": 4718, "Food": 4722, "Household": 4763,
+               "Health, Beauty": 4777, "Home Appliances": 4883, "Frozen": 4917, "Beverage": 4929, "Global": 5367,
+               "Pre-Prder": 5458, "Home Living": 5493 }
+    for key, value in mapping.items():
+        yield (key, value)
 
-    delay = random.uniform(2, 5)
-    print(f"Waiting {delay:.2f} seconds...")
-    time.sleep(delay)
+###%%%%%%%%%%%%%%%%%%%%%%%% acess map_categorys by map_categorys[0][:] and use it in map_category function  AND use then use map cathegory in the for loop
+map_categorys = list(map_category_generater())
+#%%
+map_category = {
+    overview_template[(overview_template["id_parent"] == 4710) & (overview_template["name_parent"] == "Fresh")][
+        "id_group"].values}
+large_table = []
+for i in range(len(overview_template[overview_template["id_parent"] == 4710])):
+    try:
+        received_raw_data = header_request(ids_group_all[i], 1, 100)  # add ids_group_all[i]
+        large_table = [i, pd.DataFrame(received_raw_data['content'])]
+    except:
+        large_table.append([i, None])
+    finally:
+        delay = random.uniform(2, 5)
+        print(f"Waiting {delay:.2f} seconds...")
+        time.sleep(8)
 
-
-processed_data: pd.DataFrame = pd.DataFrame(received_raw_data['content'])
+# processed_data: pd.DataFrame = pd.DataFrame(received_raw_data['content'])
