@@ -15,29 +15,29 @@ def group_by_level(tree_data: pd.DataFrame, level: int) -> dict:
     return nested_all
 
 
-def link_tree(group_id: int) -> tuple:
+def link_tree(id_group: int) -> tuple:
     """Function to link a group to its parent and child, returning a tuple of their IDs."""
     try:
         # Attempt to find the child and parent for the specified group.
-        child_id: int = int(nested_all[3].loc[nested_all[3]['id'] == group_id, 'parentId'].values[0])
-        parent_id: int = int(nested_all[2].loc[nested_all[2]['id'] == child_id, 'parentId'].values[0])
-        return parent_id, child_id, group_id
+        id_child: int = int(nested_all[3].loc[nested_all[3]['id'] == id_group, 'parentId'].values[0])
+        id_parent: int = int(nested_all[2].loc[nested_all[2]['id'] == id_child, 'parentId'].values[0])
+        return id_parent, id_child, id_group
     except IndexError:  # Handle cases where the group does not have a parent or child.
-        return None, None, group_id
+        return None, None, id_group
 
 
 # Apply the function to all groups in level 3.
-def all_group_ids(nested_all: dict) -> dict:
-    group_ids: list = nested_all[3]['id'].values
-    groups_connected: dict = {group_id: link_tree(group_id) for group_id in group_ids}
-    return groups_connected
+# def all_group_ids(nested_all: dict) -> dict:
+#     group_ids: list = nested_all[3]['id'].values
+#     groups_connected: dict = {id_group: link_tree(id_group) for id_group in group_ids}
+#     return groups_connected
 
 
 # % getting the valeus by id
 def all_values_by_id(id: int, header: str):
     """
     Function to get the values of a column by ID.
-    :param id: group_id from the deepest level
+    :param id: id_group from the deepest level
     :param header: column header
     :return header value at given id
     """
@@ -65,7 +65,7 @@ with open(tree_path, 'r') as f:
 nested_all: dict = group_by_level(tree_data, 3)  # asumption total of 3 levels deep
 
 # create connceted groups
-groups_connected: dict = all_group_ids(nested_all)
+#groups_connected: dict = all_group_ids(nested_all)
 
 # % make dictionary
 
@@ -82,7 +82,7 @@ for i in range(1, len(group_ids)):
     except TypeError:
         child_id = None
     try:
-        parent_id = all_values_by_id(child_id, "id")
+        parent_id = all_values_by_id(child_id, "parentId")
     except TypeError:
         parent_id = None
 
@@ -109,10 +109,10 @@ print(overview["name_group"].loc[overview["id_group"] == 5121])
 
 # %%%%% request website
 
-def header_request(group_id, page=1, pageSize=1000,
+def header_request(id_group, page=1, pageSize=1000,
                    sortType=("rank", "sort_totalsales15_desc", "sort_dredisprice_asc", "sort_discount_asc")):
     """
-    :param group_id:
+    :param id_group:
     :param page:
     :param pageSize:
     :param sortType:
@@ -125,12 +125,12 @@ def header_request(group_id, page=1, pageSize=1000,
     headers = {
         "Content-type": "application/json",
     }
-    data = {"categoryId": group_id,
+    data = {"categoryId": id_group,
             "page": page,
             "pageSize": pageSize,
             "sortType": sortType
             }
-    # request to the page
+
     request = requests.post('https://www.ochama.com/api/v1/category/aggregate/sku', headers=headers,
                             json=data)  # the right way to send POST requests
     return request.json()
@@ -140,4 +140,4 @@ def header_request(group_id, page=1, pageSize=1000,
 
 
 
-raw_data = header_request()
+received_raw_data = header_request()
