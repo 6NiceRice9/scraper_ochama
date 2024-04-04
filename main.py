@@ -72,22 +72,31 @@ print(all_values_by_id(4808, "name"))
 print(all_values_by_id(4808, "imageUrl"))
 
 # %%% preparing request
-overview = []
 group_ids: list = nested_all[3]['id'].values
-for i in range(1, 2):
-    group_id = group_ids[i]
-    child_id = all_values_by_id(group_id, "parentId")
-    parent_id = all_values_by_id(child_id, "id")
+rows = []
+for i in range(1, len(group_ids)):
+    group_id = int(group_ids[i])
+    try:
+        child_id = all_values_by_id(group_id, "parentId")
+    except TypeError:
+        child_id = None
+    try:
+        parent_id = all_values_by_id(child_id, "id")
+    except TypeError:
+        parent_id = None
 
-    overview.append(
-        {"parent_id:": all_values_by_id(parent_id, "id"),
-         "child_id:": all_values_by_id(child_id, "id"),
-         "group_id:": all_values_by_id(group_id, "id"),
-         "parent_name": all_values_by_id(group_ids[i], "name"),
-         "child_name": all_values_by_id(group_ids[i], "name"),
-         "group_name": all_values_by_id(group_ids[i], "name"),
-         "url": all_values_by_id(group_ids[i], "imageUrl")
-         })
-
-print(overview)
+    row ={
+         "id_parent:": all_values_by_id(parent_id, "id"),
+         "id_child:": all_values_by_id(child_id, "id"),
+         "id_group:": all_values_by_id(group_id, "id"),
+         "name_parent": all_values_by_id(parent_id, "name"),
+         "name_child": all_values_by_id(child_id, "name"),
+         "name_group": all_values_by_id(group_id, "name"),
+         "url": all_values_by_id(group_id, "imageUrl")
+         }
+    rows.append(row)
+# Convert the list of dictionaries to a DataFrame
+overview = pd.DataFrame(rows, columns=['id_parent:', 'id_child:', 'id_group:', 'name_parent', 'name_child', 'name_group', 'url'])
+overview.fillna(0, inplace=True)
+#print(overview)
 # print(all_values_by_id(groups_connected[4808][1], "name"))
