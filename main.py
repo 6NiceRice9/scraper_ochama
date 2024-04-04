@@ -32,7 +32,7 @@ def all_group_ids(nested_all: dict) -> dict:
     return groups_connected
 
 
-# %% getting the valeus by id
+#% getting the valeus by id
 def all_values_by_id(id: int, header: str):
     """
     Function to get the values of a column by ID.
@@ -66,12 +66,12 @@ nested_all: dict = group_by_level(tree_data, 3)  # asumption total of 3 levels d
 # create connceted groups
 groups_connected: dict = all_group_ids(nested_all)
 
-# %% make dictionary
+# % make dictionary
 
-print(all_values_by_id(4808, "name"))
-print(all_values_by_id(4808, "imageUrl"))
+#print(all_values_by_id(4808, "name"))
+#print(all_values_by_id(4808, "imageUrl"))
 
-# %%% preparing request
+# % preparing request
 group_ids: list = nested_all[3]['id'].values
 rows = []
 for i in range(1, len(group_ids)):
@@ -86,9 +86,9 @@ for i in range(1, len(group_ids)):
         parent_id = None
 
     row ={
-         "id_parent:": all_values_by_id(parent_id, "id"),
-         "id_child:": all_values_by_id(child_id, "id"),
-         "id_group:": all_values_by_id(group_id, "id"),
+         "id_parent": all_values_by_id(parent_id, "id"),
+         "id_child": all_values_by_id(child_id, "id"),
+         "id_group": all_values_by_id(group_id, "id"),
          "name_parent": all_values_by_id(parent_id, "name"),
          "name_child": all_values_by_id(child_id, "name"),
          "name_group": all_values_by_id(group_id, "name"),
@@ -96,7 +96,22 @@ for i in range(1, len(group_ids)):
          }
     rows.append(row)
 # Convert the list of dictionaries to a DataFrame
-overview = pd.DataFrame(rows, columns=['id_parent:', 'id_child:', 'id_group:', 'name_parent', 'name_child', 'name_group', 'url'])
-overview.fillna(0, inplace=True)
-#print(overview)
-# print(all_values_by_id(groups_connected[4808][1], "name"))
+overview = pd.DataFrame(rows, columns=["id_parent", "id_child", "id_group", "name_parent", "name_child", "name_group", "url"])
+overview.fillna(0, inplace=True)    #replaceing NaN
+overview["id_parent"] = overview["id_parent"].astype(int)   # convert to int
+overview["id_child"] = overview["id_child"].astype(int)     # convert to int
+print(overview)
+
+#%%%%% request website
+
+def header_request(group_id, page=1, pageSize=1000, sortType="rank"):
+    headers = {
+        "Content-type": "application/json;charset=UTF-8",
+    }
+    data = {"categoryId": group_id,
+            "page": page,
+            "pageSize": pageSize,
+            "sortType": sortType
+            }
+    return headers, data
+
