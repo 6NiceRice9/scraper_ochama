@@ -1,7 +1,8 @@
 import json
 import pandas as pd  # for working with dataframes
 import requests  # for sending POST requests
-
+import time
+import random
 
 # Categorize all items by their level.
 def group_by_level(tree_data: pd.DataFrame, level: int) -> dict:
@@ -28,8 +29,8 @@ def link_tree(id_group: int) -> tuple:
 
 # Apply the function to all groups in level 3.
 # def all_group_ids(nested_all: dict) -> dict:
-#     group_ids: list = nested_all[3]['id'].values
-#     groups_connected: dict = {id_group: link_tree(id_group) for id_group in group_ids}
+#     ids_group_all: list = nested_all[3]['id'].values
+#     groups_connected: dict = {id_group: link_tree(id_group) for id_group in ids_group_all}
 #     return groups_connected
 
 
@@ -73,27 +74,27 @@ nested_all: dict = group_by_level(tree_data, 3)  # asumption total of 3 levels d
 # print(all_values_by_id(4808, "imageUrl"))
 
 # % preparing request
-group_ids: list = nested_all[3]['id'].values
+ids_group_all: list = nested_all[3]['id'].values[:]
 rows_template = []
-for i in range(1, len(group_ids)):
-    group_id = int(group_ids[i])
+for i in range(1, len(ids_group_all)):
+    id_group = int(ids_group_all[i])
     try:
-        child_id = all_values_by_id(group_id, "parentId")
+        id_child = all_values_by_id(id_group, "parentId")
     except TypeError:
-        child_id = None
+        id_child = None
     try:
-        parent_id = all_values_by_id(child_id, "parentId")
+        id_parent = all_values_by_id(id_child, "parentId")
     except TypeError:
-        parent_id = None
+        id_parent = None
 
     row_template = {
-        "id_parent": all_values_by_id(parent_id, "id"),
-        "id_child": all_values_by_id(child_id, "id"),
-        "id_group": all_values_by_id(group_id, "id"),
-        "name_parent": all_values_by_id(parent_id, "name"),
-        "name_child": all_values_by_id(child_id, "name"),
-        "name_group": all_values_by_id(group_id, "name"),
-        "url": all_values_by_id(group_id, "imageUrl")
+        "id_parent": all_values_by_id(id_parent, "id"),
+        "id_child": all_values_by_id(id_child, "id"),
+        "id_group": all_values_by_id(id_group, "id"),
+        "name_parent": all_values_by_id(id_parent, "name"),
+        "name_child": all_values_by_id(id_child, "name"),
+        "name_group": all_values_by_id(id_group, "name"),
+        "url": all_values_by_id(id_group, "imageUrl")
     }
     rows_template.append(row_template)
 # Convert the list of dictionaries to a DataFrame
@@ -139,6 +140,13 @@ def header_request(id_group, page=1, pageSize=1000, sortType="sort_totalsales15_
 #  %%% ID_GROUP HAS TO BE ADJUSTED
 received_raw_data = header_request(5637, 1, 100, "rank")
 
-#%% results
+#%% loop over all "id_groups"
+for i in range(1, 6):
+    received_raw_data = header_request(i, 1, 100, "rank")
+
+    delay = random.uniform(2, 5)
+    print(f"Waiting {delay:.2f} seconds...")
+    time.sleep(delay)
+
 
 processed_data: pd.DataFrame = pd.DataFrame(received_raw_data['content'])
