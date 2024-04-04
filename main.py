@@ -1,5 +1,6 @@
 import json
-import pandas as pd
+import pandas as pd  # for working with dataframes
+import requests  # for sending POST requests
 
 
 # Categorize all items by their level.
@@ -32,7 +33,7 @@ def all_group_ids(nested_all: dict) -> dict:
     return groups_connected
 
 
-#% getting the valeus by id
+# % getting the valeus by id
 def all_values_by_id(id: int, header: str):
     """
     Function to get the values of a column by ID.
@@ -68,8 +69,8 @@ groups_connected: dict = all_group_ids(nested_all)
 
 # % make dictionary
 
-#print(all_values_by_id(4808, "name"))
-#print(all_values_by_id(4808, "imageUrl"))
+# print(all_values_by_id(4808, "name"))
+# print(all_values_by_id(4808, "imageUrl"))
 
 # % preparing request
 group_ids: list = nested_all[3]['id'].values
@@ -85,33 +86,58 @@ for i in range(1, len(group_ids)):
     except TypeError:
         parent_id = None
 
-    row ={
-         "id_parent": all_values_by_id(parent_id, "id"),
-         "id_child": all_values_by_id(child_id, "id"),
-         "id_group": all_values_by_id(group_id, "id"),
-         "name_parent": all_values_by_id(parent_id, "name"),
-         "name_child": all_values_by_id(child_id, "name"),
-         "name_group": all_values_by_id(group_id, "name"),
-         "url": all_values_by_id(group_id, "imageUrl")
-         }
+    row = {
+        "id_parent": all_values_by_id(parent_id, "id"),
+        "id_child": all_values_by_id(child_id, "id"),
+        "id_group": all_values_by_id(group_id, "id"),
+        "name_parent": all_values_by_id(parent_id, "name"),
+        "name_child": all_values_by_id(child_id, "name"),
+        "name_group": all_values_by_id(group_id, "name"),
+        "url": all_values_by_id(group_id, "imageUrl")
+    }
     rows.append(row)
 # Convert the list of dictionaries to a DataFrame
-overview = pd.DataFrame(rows, columns=["id_parent", "id_child", "id_group", "name_parent", "name_child", "name_group", "url"])
-overview.fillna(0, inplace=True)    #replaceing NaN
-overview["id_parent"] = overview["id_parent"].astype(int)   # convert to int
-overview["id_child"] = overview["id_child"].astype(int)     # convert to int
-print(overview)
+overview = pd.DataFrame(rows,
+                        columns=["id_parent", "id_child", "id_group", "name_parent", "name_child", "name_group", "url"])
+overview.fillna(0, inplace=True)  # replaceing NaN
+overview["id_parent"] = overview["id_parent"].astype(int)  # convert to int
+overview["id_child"] = overview["id_child"].astype(int)  # convert to int
 
-#%%%%% request website
+# %%% request overview table
+print(overview["name_group"].loc[overview["id_group"] == 5121])
 
-def header_request(group_id, page=1, pageSize=1000, sortType="rank"):
+
+# %%%%% request website
+
+def header_request(group_id, page=1, pageSize=1000,
+                   sortType=("rank", "sort_totalsales15_desc", "sort_dredisprice_asc", "sort_discount_asc")):
+    """
+    :param group_id:
+    :param page:
+    :param pageSize:
+    :param sortType:
+    "Feature" = rank
+    "Bestsellers" = sort_totalsales15_desc
+    "Price" = sort_dredisprice_asc (=lowest on top) / sort_dredisprice_desc (=highest on top)
+    "Promotion" = sort_discount_asc
+    :return:
+    """
     headers = {
-        "Content-type": "application/json;charset=UTF-8",
+        "Content-type": "application/json",
     }
     data = {"categoryId": group_id,
             "page": page,
             "pageSize": pageSize,
             "sortType": sortType
             }
-    return headers, data
+    # request to the page
+    request = requests.post('https://www.ochama.com/api/v1/category/aggregate/sku', headers=headers,
+                            json=data)  # the right way to send POST requests
+    return request.json()
 
+#%% saving request data
+# preparing request data
+
+
+
+raw_data = header_request()
