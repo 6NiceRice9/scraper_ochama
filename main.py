@@ -32,7 +32,7 @@ def all_group_ids(nested_all: dict) -> dict:
     return groups_connected
 
 
-# %% getting the names
+# %% getting the valeus by id
 def all_values_by_id(nested_dict: dict, id: int, header: str):
     """
     Function to get the values of a column by ID.
@@ -41,46 +41,19 @@ def all_values_by_id(nested_dict: dict, id: int, header: str):
     :param header: column header
     :return header value at given id
     """
-    try:
-        try:
-            name = nested_all[1][nested_all[1]["id"] == id][header]
-            return name.values[0]
-        except:
-            pass
-        try:
-            name = nested_all[2][nested_all[2]["id"] == id][header]
-            return name.values[0]
-        except:
-            pass
-        try:
-            name = nested_all[3][nested_all[3]["id"] == id][header]
-            return name.values[0]
-        except:
-            pass
-        return name.values[0]
-    except IndexError:
-        return None
+    value = None  # Initialize value as None to indicate "not found" by default
+    for i in range(1, 4):
+        df = nested_all.get(i)  # Safely get the DataFrame for key `i`
+        if df is not None:
+            # Attempt to filter the DataFrame based on the `id`
+            filtered_df = df[df["id"] == id]
+            if not filtered_df.empty:
+                # If the filtered DataFrame is not empty, attempt to get the value
+                value = filtered_df[header].iloc[0]
+                break  # Exit the loop after finding the first match
+    return value
 
-def image_url_by_id(nested_all, id):  # get the image URL based on level1 - level2 -level3
-    try:
-        try:
-            name = nested_all[1][nested_all[1]["id"] == id]['imageUrl']
-            return name.values[0]
-        except:
-            pass
-        try:
-            name = nested_all[2][nested_all[2]["id"] == id]['imageUrl']
-            return name.values[0]
-        except:
-            pass
-        try:
-            name = nested_all[3][nested_all[3]["id"] == id]['imageUrl']
-            return name.values[0]
-        except:
-            pass
-        return name.values[0]
-    except IndexError:
-        return None
+
 
 
 ################# Start of the main program #################
@@ -101,5 +74,5 @@ groups_connected: dict = all_group_ids(nested_all)
 
 # %% make dictionary
 
-print(all_values_by_id(nested_all, 4883, "name"))
-print(all_values_by_id(nested_all, 4883, "imageUrl"))
+print(all_values_by_id(nested_all, 4777, "name"))
+print(all_values_by_id(nested_all, 4777, "imageUrl"))
