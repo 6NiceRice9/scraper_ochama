@@ -74,7 +74,7 @@ nested_all: dict = group_by_level(tree_data, 3)  # asumption total of 3 levels d
 
 # % preparing request
 group_ids: list = nested_all[3]['id'].values
-rows = []
+rows_template = []
 for i in range(1, len(group_ids)):
     group_id = int(group_ids[i])
     try:
@@ -86,7 +86,7 @@ for i in range(1, len(group_ids)):
     except TypeError:
         parent_id = None
 
-    row = {
+    row_template = {
         "id_parent": all_values_by_id(parent_id, "id"),
         "id_child": all_values_by_id(child_id, "id"),
         "id_group": all_values_by_id(group_id, "id"),
@@ -95,27 +95,26 @@ for i in range(1, len(group_ids)):
         "name_group": all_values_by_id(group_id, "name"),
         "url": all_values_by_id(group_id, "imageUrl")
     }
-    rows.append(row)
+    rows_template.append(row_template)
 # Convert the list of dictionaries to a DataFrame
-overview = pd.DataFrame(rows,
-                        columns=["id_parent", "id_child", "id_group", "name_parent", "name_child", "name_group", "url"])
-overview.fillna(0, inplace=True)  # replaceing NaN
-overview["id_parent"] = overview["id_parent"].astype(int)  # convert to int
-overview["id_child"] = overview["id_child"].astype(int)  # convert to int
+overview_template = pd.DataFrame(rows_template,
+                                 columns=["id_parent", "id_child", "id_group", "name_parent", "name_child", "name_group", "url"])
+overview_template.fillna(0, inplace=True)  # replaceing NaN
+overview_template["id_parent"] = overview_template["id_parent"].astype(int)  # convert to int
+overview_template["id_child"] = overview_template["id_child"].astype(int)  # convert to int
 
-# %%% request overview table
-print(overview["name_group"].loc[overview["id_group"] == 5121])
+#  %%%% request overview_template table
+#print(overview_template["name_group"].loc[overview_template["id_group"] == 5121])
 
-
-# %%%%% request website
-
-def header_request(id_group, page=1, pageSize=1000,
-                   sortType=("rank", "sort_totalsales15_desc", "sort_dredisprice_asc", "sort_discount_asc")):
+# filter for value
+#search_value = "Fresh"
+#filtered_df = overview_template[overwiew['name_child'] == search_value]
+#  %%%%% request website
+def header_request(id_group, page=1, pageSize=1000, sortType="sort_totalsales15_desc"):
     """
     :param id_group:
     :param page:
     :param pageSize:
-    :param sortType:
     "Feature" = rank
     "Bestsellers" = sort_totalsales15_desc
     "Price" = sort_dredisprice_asc (=lowest on top) / sort_dredisprice_desc (=highest on top)
@@ -135,9 +134,11 @@ def header_request(id_group, page=1, pageSize=1000,
                             json=data)  # the right way to send POST requests
     return request.json()
 
-#%% saving request data
+#  %%% saving request data
 # preparing request data
+#  %%% ID_GROUP HAS TO BE ADJUSTED
+received_raw_data = header_request(5637, 1, 100, "rank")
 
+#%% results
 
-
-received_raw_data = header_request()
+processed_data: pd.DataFrame = pd.DataFrame(received_raw_data['content'])
