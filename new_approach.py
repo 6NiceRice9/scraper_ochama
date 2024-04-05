@@ -1,4 +1,6 @@
 import json
+from typing import Tuple, Any
+
 import pandas as pd  # for working with dataframes
 import requests  # for sending POST requests
 import numpy as np
@@ -6,16 +8,10 @@ import time
 import random
 from openpyxl import load_workbook
 
-# %%
-
-tree_path: str = 'ochama_structure.txt'
-with open(tree_path, 'r') as f:
-    raw_json: pd.DataFrame = pd.json_normalize(json.loads(f.read()))
-raw_json.drop(columns=["children", "backgroundImg", "sort", "imageUrl"], inplace=True)
-
 
 def split_in_groups(raw_json: pd.DataFrame):
-    """Data sorting (find groups without children/parents)"""
+    """Data sorting (find groups without children/parents)
+    :param raw_json: DataFrame of raw imported data"""
     _parents_and_children = raw_json[
         raw_json['id'].isin(raw_json['parentId'])]  # select: parents and children == exclude groups
     parents = raw_json[
@@ -30,30 +26,32 @@ def split_in_groups(raw_json: pd.DataFrame):
     return parents, children, groups, groups_without_parents
 
 
-# groups
-parents, children, groups, group_without_parent = split_in_groups(raw_json)
+def search_results(searching_term: str, parents: pd.DataFrame, children: pd.DataFrame, groups: pd.DataFrame) -> tuple[
+    str, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """searching by: parent -> children -> groups
+    :param searching_term: name of the main category
+    :param parents: DataFrame with all parents
+    :param children: DataFrame with all children
+    :param groups: DataFrame with all groups"""
+    searching_term = searching_term
+    looking_for_id_parent = parents[parents["name"] == searching_term].reset_index()  # parent row
+    looking_for_children = children[
+        children["parentId"].isin(looking_for_id_parent["id"])].reset_index()  # matching children to parent id
+    looking_for_groups = groups[
+        groups["parentId"].isin(looking_for_children["id"])].reset_index()  # match groups to children and parent
+    return searching_term, looking_for_id_parent, looking_for_children, looking_for_groups
 
-#### searching by: parent -> children -> groups
-looking_for = "Fresh"
-looking_for_id_parent = parents[parents["name"] == "Fresh"].reset_index()  # parent row
-looking_for_children = children[
-    children["parentId"].isin(looking_for_id_parent["id"])].reset_index()  # matching children to parent id
-looking_for_groups = groups[
-    groups["parentId"].isin(looking_for_children["id"])].reset_index()  # match groups to children and parent
-
-
-# %%
-# constructing tree
 
 def header_request(id_group: int, page=1, pageSize=1000, sortType="sort_dredisprice_asc"):
     """
-    :param id_group:
-    :param page:
-    :param pageSize:
-    "Feature" = rank
-    "Bestsellers" = sort_totalsales15_desc
-    "Price" = sort_dredisprice_asc (=lowest on top) / sort_dredisprice_desc (=highest on top)
-    "Promotion" = sort_discount_asc
+    :param id_group: group id that has to be scraped
+    :param page: number of pages (less pages, when >> pageSize)
+    :param pageSize: >>> value, to avoid scraping over several pages
+    :param sortType:
+        "Price" = sort_dredisprice_asc (=lowest on top) / sort_dredisprice_desc (=highest on top)
+        "Feature" = rank
+        "Bestsellers" = sort_totalsales15_desc
+        "Promotion" = sort_discount_asc
     :return:
     """
     headers = {
@@ -86,8 +84,16 @@ def all_products_incl_promo(header_received) -> pd.DataFrame:
     return all_products
 
 
-# %%
+tree_path: str = 'ochama_structure.txt'
+with open(tree_path, 'r') as f:
+    raw_json: pd.DataFrame = pd.json_normalize(json.loads(f.read()))
+raw_json.drop(columns=["children", "backgroundImg", "sort", "imageUrl"], inplace=True)  # remove unneeded columns
 
+#  %%%% separated groups
+parents, children, groups, group_without_parent = split_in_groups(raw_json)
+
+# %%
+_, _, groups, _ = search_results("Fresh", parents, children, groups)
 
 all_requests = pd.DataFrame()
 for i in range(30, len(looking_for_groups["id"])):
@@ -106,9 +112,3 @@ all_requests.to_csv(f"{looking_for}.txt", index=False)
 
 # %%
 group_id = 5099
-test_request = {group_id: header_request(group_id)}
-
-# %% filter data
-a = pd.DataFrame(test_request[group_id]["content"])
-b = pd.DataFrame(test_request[group_id]["content"])[
-    ["price", "basePrice", "largeImg", "stock", 'skuName', "brandName", "fresh", "largeProduct"]]
