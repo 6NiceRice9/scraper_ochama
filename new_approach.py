@@ -42,7 +42,7 @@ def search_results(searching_term: str, parents: pd.DataFrame, children: pd.Data
     return searching_term, _looking_for_id_parent, _looking_for_children, _looking_for_groups
 
 
-def header_request(id_group: int, page=1, pageSize=1000, sortType="sort_dredisprice_asc"):
+def header_request(id_group: int, page=1, pageSize=1000, sortType="sort_dredisprice_asc") -> Any:
     """
     :param id_group: group id that has to be scraped
     :param page: number of pages (less pages, when >> pageSize)
@@ -94,12 +94,13 @@ _parents, _children, _groups, _groups_without_parents = split_in_groups(raw_json
 search_term = "Fresh"
 _, _, _, template_search_result_groupsgroups = search_results(search_term, _parents, _children, _groups)
 #%%
-all_requests = pd.DataFrame()
-for i in range(34, len(template_search_result_groupsgroups["id"])):
+#all_requests = pd.DataFrame()
+for i in range(30, len(template_search_result_groupsgroups["id"])):
     group_id = int(template_search_result_groupsgroups["id"].values[i])
-
-    #all_requests = pd.concat([all_requests, header_request(group_id, page=1, pageSize=1000)], ignore_index=True)
-    #all_products_incl_promo()
+    website_response_raw = header_request(group_id, page=1, pageSize=1000, sortType="sort_dredisprice_asc") # request website for results
+    website_response_df = pd.DataFrame(website_response_raw.json()["content"])
+    website_response_product_incl_promo = all_products_incl_promo(website_response_raw)  # all products incl. promo
+    website_response_all_info = pd.concat([website_response_df, website_response_product_incl_promo], ignore_index=True) # merging all responses
     ##delay
     delay = random.uniform(2, 5)
     print(f"Waiting {delay:.2f} seconds...")
@@ -108,8 +109,8 @@ for i in range(34, len(template_search_result_groupsgroups["id"])):
 # %%
 
 file_path = "C:/Users/NiceRice/git/scraper_ochama/scraper_ochama/ochama_products.xlsx"
-sheet_name = looking_for
-all_requests.to_csv(f"{looking_for}.txt", index=False)
+sheet_name = search_term
+website_response_all_info.to_csv(f"{sheet_name}.txt", index=False)
 
 # %%
 group_id = 5099
