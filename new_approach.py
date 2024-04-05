@@ -69,21 +69,26 @@ def header_request(id_group: int, page=1, pageSize=1000, sortType="sort_dredispr
     products = pd.json_normalize(request.json()["content"])
     promolist = [pd.json_normalize(item['promoList']) for item in request.json()['content']]
     return request
-    #return pd.json_normalize(request.json()["content"])
-    #%%
+#%%
 
 data = header_request(5099)
-# Load the main data into a DataFrame
-df = pd.DataFrame(data)
 
-# Assuming each item in your main data list only contains one promoList,
-# we can extract and normalize this nested structure like so:
-promo_list_dfs = [pd.json_normalize(item['promoList']) for item in data.json()['content']]
+# Extract the 'content' list from the JSON data
+content_list = data.json()['content']
+content_frame = pd.DataFrame(content_list)
+all_promos_df = pd.DataFrame()
+# Iterate over each item in the content list
+for item in content_list:
+    # Normalize the 'promoList' of each item into a DataFrame and append it to the 'dataframes' list
+    df = pd.json_normalize(item['promoList'])
+    # get the right promoId
+    promoId = pd.DataFrame(content_frame["promoList"].values[0])["promoId"]
+    # Add an identifier column to link back to the original 'content' item
+    # df["promoId"] = item["skuId"]
+    # Append it to the 'all_promos_df' DataFrame
+    all_promos_df = pd.concat([all_promos_df, df], ignore_index=True)
 
-# If you want to work with the first product's promoList as an example:
-promo_df = promo_list_dfs[0]
-
-print(promo_df)
+print(all_promos_df)
 
 
 #%%
