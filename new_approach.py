@@ -22,12 +22,12 @@ def split_in_groups(raw_json: pd.DataFrame):
     return parents, children, groups, groups_without_parents
 
 # groups
-parent, child, group, group_without_parent  = split_in_groups(raw_json)
+parents, children, groups, group_without_parent  = split_in_groups(raw_json)
 
 #### searching by: parent -> children -> groups
 looking_for = "Fresh"
-looking_for_id_parent = parent[parent["name"] == "Fresh"] # parent row
-looking_for_children = child[child["parentId"].isin(looking_for_id_parent["id"])] # matching children to parent id
-looking_for_groups = group[group["parentId"].isin(looking_for_children["id"])]   # match groups to children and parent
+looking_for_id_parent = parents[parents["name"] == "Fresh"] # parent row
+looking_for_children = children[children["parentId"].isin(looking_for_id_parent["id"])] # matching children to parent id
+looking_for_groups = groups[groups["parentId"].isin(looking_for_children["id"])]   # match groups to children and parent
 
 #%%
