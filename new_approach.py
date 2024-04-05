@@ -71,14 +71,14 @@ def all_products_incl_promo_optimized(header_received) -> pd.DataFrame:
     """Nesting out the Promocoded from the 'promoList' column with optimized approach."""
     _header_received_list = header_received.json()["content"]
 
-    all_rows = []  # A list to collect DataFrame rows
+    all_rows = pd.DataFrame()  # A list to collect DataFrame rows
     # Iterate over each item in the content list
     for item in _header_received_list:
         _row_in_main_table = pd.json_normalize(item).reset_index(drop=True)
         _row_in_promoList = pd.json_normalize(item.get('promoList', [])).reset_index(drop=True)  # Use .get for safer access
         merged = pd.concat([_row_in_main_table, _row_in_promoList], axis=1)
-        all_rows = all_rows.append(merged, ignore_index=False)
-
+        all_rows = all_rows._append(merged, ignore_index=False)
+    print(all_rows)
    # _all_products = pd.concat(all_rows, ignore_index=True)
     return all_rows
 
