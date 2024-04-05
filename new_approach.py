@@ -93,7 +93,7 @@ _parents, _children, _groups, _groups_without_parents = split_in_groups(raw_json
 # %%
 search_term = "Fresh"
 _, _, _, template_search_result_groupsgroups = search_results(search_term, _parents, _children, _groups)
-
+#%%
 all_requests = pd.DataFrame()
 for i in range(34, len(template_search_result_groupsgroups["id"])):
     group_id = int(template_search_result_groupsgroups["id"].values[i])
