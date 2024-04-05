@@ -8,13 +8,8 @@ import random
 
 # Categorize all items by their level.
 def group_by_level(tree_data: pd.DataFrame, level: int) -> dict:
-    """
-    Function to categorize all items by their level.
-    :param tree_data: raw loaded file input
-    :param level: group level (1, 2 or 3)
-    :return: nested dictionary
-    """
-    nested_all: dict = {level: group for level, group in tree_data.groupby('level')}
+    """Correctly categorize items by their level."""
+    nested_all = {level: group for level, group in tree_data.groupby('level')}
     return nested_all
 
 
@@ -37,26 +32,21 @@ def link_tree(id_group: int) -> tuple:
 
 
 # % getting the valeus by id_any
-def all_values_by_id(id_any: int, header: str):
+
+def all_values_by_id(id_any: int, header: str, nested_all: dict) -> any:
     """
     Function to get the values of a column by ID.
     :param id_any: id_group from the deepest level
     :param header: column header
     :return header value at given id
     """
-    public = nested_all
-    value = None  # Initialize value as None to indicate "not found" by default
-    for i in range(1, 4):
-        df = nested_all.get(i)  # Safely get the DataFrame for key `i`
-        if df is not None:
-            # Attempt to filter the DataFrame based on the `id`
-            filtered_df = df[df["id"] == id_any]
-            if not filtered_df.empty:
-                # If the filtered DataFrame is not empty, attempt to get the value
-                value = filtered_df[header].iloc[0]
-                break  # Exit the loop after finding the first match
+    value = None
+    for level in nested_all.values():
+        filtered_df = level[level["id"] == id_any]
+        if not filtered_df.empty:
+            value = filtered_df.iloc[0][header]
+            break  # Now correctly exits after finding the first valid match
     return value
-
 
 ################# Start of the main program #################
 # Load the tree structure from a JSON file.
@@ -77,37 +67,31 @@ nested_all: dict = group_by_level(tree_data, 3)  # asumption total of 3 levels d
 
 # % preparing request
 ids_group_all: list = nested_all[3]['id'].values[:]
+
+# Main processing loop
 rows_template = []
-for i in range(1, len(ids_group_all)):
-    id_group = int(ids_group_all[i])
-    try:
-        id_child = all_values_by_id(id_group, "parentId")
-    except TypeError:
-        id_child = None
-    try:
-        id_parent = all_values_by_id(id_child, "parentId")
-    except TypeError:
-        id_parent = None
+for level, df in nested_all.items():
+    for id_group in df['id'].unique():
+        id_child = all_values_by_id(id_group, "parentId", nested_all)
+        id_parent = all_values_by_id(id_child, "parentId", nested_all) if id_child else None
 
-    row_template = {
-        "id_parent": all_values_by_id(id_parent, "id"),
-        "id_child": all_values_by_id(id_child, "id"),
-        "id_group": all_values_by_id(id_group, "id"),
-        "name_parent": all_values_by_id(id_parent, "name"),
-        "name_child": all_values_by_id(id_child, "name"),
-        "name_group": all_values_by_id(id_group, "name"),
-        "url": all_values_by_id(id_group, "imageUrl")
-    }
-    rows_template.append(row_template)
+        row_template = {
+            "id_parent": id_parent,
+            "id_child": id_child,
+            "id_group": id_group,
+            "name_parent": all_values_by_id(id_parent, "name", nested_all) if id_parent else None,
+            "name_child": all_values_by_id(id_child, "name", nested_all) if id_child else None,
+            "name_group": all_values_by_id(id_group, "name", nested_all),
+            "url": all_values_by_id(id_group, "imageUrl", nested_all)
+        }
+        rows_template.append(row_template)
 
-# Convert the list of dictionaries to a DataFrame
-overview_template = pd.DataFrame(rows_template,
-                                 columns=["id_parent", "id_child", "id_group", "name_parent", "name_child",
-                                          "name_group", "url"])
+overview_template = pd.DataFrame(rows_template)
+
 #  %%% groups without children and parents are marked by
-overview_template.fillna(0, inplace=True)  # replaceing NaN
-overview_template["id_parent"] = overview_template["id_parent"].astype(int)  # convert to int
-overview_template["id_child"] = overview_template["id_child"].astype(int)  # convert to int
+#overview_template.dropna()  # remove NaN rows
+#overview_template["id_parent"] = overview_template["id_parent"].astype(int)  # convert to int
+#overview_template["id_child"] = overview_template["id_child"].astype(int)  # convert to int
 
 
 #  %%%% request overview_template table
