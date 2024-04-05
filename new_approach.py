@@ -7,6 +7,8 @@ import numpy as np
 import time
 import random
 from openpyxl import load_workbook
+import cProfile
+import re
 
 
 def split_in_groups(raw_json: pd.DataFrame):
@@ -83,54 +85,57 @@ def all_products_incl_promo_optimized(header_received) -> pd.DataFrame:
    # _all_products = pd.concat(all_rows, ignore_index=True)
     return all_rows
 
+def  main():
+    tree_path: str = 'ochama_structure.txt'
+    with open(tree_path, 'r') as f:
+        raw_json: pd.DataFrame = pd.json_normalize(json.loads(f.read()))
+    raw_json.drop(columns=["children", "backgroundImg", "sort", "imageUrl"], inplace=True)  # remove unneeded columns
 
-tree_path: str = 'ochama_structure.txt'
-with open(tree_path, 'r') as f:
-    raw_json: pd.DataFrame = pd.json_normalize(json.loads(f.read()))
-raw_json.drop(columns=["children", "backgroundImg", "sort", "imageUrl"], inplace=True)  # remove unneeded columns
+    #  %%%% separated groups
+    parents, _children, _groups, _groups_without_parents = split_in_groups(raw_json)
 
-#  %%%% separated groups
-parents, _children, _groups, _groups_without_parents = split_in_groups(raw_json)
+    #  %% looping here through all categories
+    search_category = ["World Food", "Food", "Fresh", "Frozen", "Beverage", "Electronics", "Home Appliances", "Home Living", "Household", "Health", "Beauty", "Global", "Pre-order"]
+    all_group_ids_matching_search_criteria = pd.DataFrame()
+    template_search_result_groupsgroups = pd.DataFrame()
 
-#  %% looping here through all categories
-search_category = ["World Food", "Food", "Fresh", "Frozen", "Beverage", "Electronics", "Home Appliances", "Home Living", "Household", "Health", "Beauty", "Global", "Pre-order"]
-all_group_ids_matching_search_criteria = pd.DataFrame()
-template_search_result_groupsgroups = pd.DataFrame()
+    max_outer_loop_steps = 0
+    max_inner_loop_steps = 0
+    current_outer_loop = 0
+    total_n_steps = 0
+    current_inner_loop = 0
+    reduced_category = 0
 
-max_outer_loop_steps = 0
-max_inner_loop_steps = 0
-current_outer_loop = 0
-total_n_steps = 0
-current_inner_loop = 0
-reduced_category = 0
+    for f in range(1, len(search_category)-reduced_category):  # search_category: "-11" to avoid "Global"
+        search_term = search_category[f]
+        a, b, c, template_search_result_groupsgroups = search_results(search_term, parents, _children, _groups)
+        all_group_ids_matching_search_criteria = pd.concat([all_group_ids_matching_search_criteria, template_search_result_groupsgroups], ignore_index=True)
+    ####### all_group_ids_matching_search_criteria = all_group_ids_matching_search_criteria.extend(template_search_result_groupsgroups)
+    ####### request website for results & save after each iteration after one category iteration to txt file
+        website_response_all_info = pd.DataFrame()
+        max_outer_loop_steps = len(search_category) - reduced_category   # left over steps
+        max_inner_loop_steps = len(template_search_result_groupsgroups["id"])  # for the counter im terminal
+        current_outer_loop += 1
+        for i in range(0, len(template_search_result_groupsgroups["id"])):
+            group_id = int(template_search_result_groupsgroups["id"].values[i])
+            website_response_raw = header_request(group_id, page=1, pageSize=1000, sortType="sort_dredisprice_asc") # request website for results
+            website_response_df = pd.DataFrame(website_response_raw.json()["content"])
+            website_response_product_incl_promo = all_products_incl_promo_optimized(website_response_raw)  # all products incl. promo
+            website_response_all_info = pd.concat([website_response_all_info, website_response_product_incl_promo], ignore_index=True) # merging all responses
+            ##delay
+            delay = random.uniform(1, 2)
+            current_inner_loop += 1
+            total_n_steps += 1
+            print(f"Waiting {delay:.2f} seconds... categorys: {max_outer_loop_steps - 1}/{current_outer_loop} steps:{max_inner_loop_steps}/{current_inner_loop}, total steps: {total_n_steps}")
+            time.sleep(2)
+    ####### after looping over first category, saving file to txt
+        current_inner_loop = 0  #reset inner loop timer
+        file_path = "C:/Users/NiceRice/git/scraper_ochama/scraper_ochama/ochama_products"
+        sheet_name = search_term
+        website_response_all_info.to_csv(f"{sheet_name}.txt", index=False)
+        print(f"Saved: {sheet_name}.txt\n"
+              f"with the shape: {website_response_all_info.shape}")
 
-for f in range(1, len(search_category)-reduced_category):  # search_category: "-11" to avoid "Global"
-    search_term = search_category[f]
-    a, b, c, template_search_result_groupsgroups = search_results(search_term, parents, _children, _groups)
-    all_group_ids_matching_search_criteria = pd.concat([all_group_ids_matching_search_criteria, template_search_result_groupsgroups], ignore_index=True)
-####### all_group_ids_matching_search_criteria = all_group_ids_matching_search_criteria.extend(template_search_result_groupsgroups)
-####### request website for results & save after each iteration after one category iteration to txt file
-    website_response_all_info = pd.DataFrame()
-    max_outer_loop_steps = len(search_category) - reduced_category   # left over steps
-    max_inner_loop_steps = len(template_search_result_groupsgroups["id"])  # for the counter im terminal
-    current_outer_loop += 1
-    for i in range(0, len(template_search_result_groupsgroups["id"])):
-        group_id = int(template_search_result_groupsgroups["id"].values[i])
-        website_response_raw = header_request(group_id, page=1, pageSize=1000, sortType="sort_dredisprice_asc") # request website for results
-        website_response_df = pd.DataFrame(website_response_raw.json()["content"])
-        website_response_product_incl_promo = all_products_incl_promo_optimized(website_response_raw)  # all products incl. promo
-        website_response_all_info = pd.concat([website_response_all_info, website_response_product_incl_promo], ignore_index=True) # merging all responses
-        ##delay
-        delay = random.uniform(1, 2)
-        current_inner_loop += 1
-        total_n_steps += 1
-        print(f"Waiting {delay:.2f} seconds... categorys: {max_outer_loop_steps - 1}/{current_outer_loop} steps:{max_inner_loop_steps}/{current_inner_loop}, total steps: {total_n_steps}")
-        time.sleep(2)
-####### after looping over first category, saving file to txt
-    current_inner_loop = 0  #reset inner loop timer
-    file_path = "C:/Users/NiceRice/git/scraper_ochama/scraper_ochama/ochama_products"
-    sheet_name = search_term
-    website_response_all_info.to_csv(f"{sheet_name}.txt", index=False)
-    print(f"Saved: {sheet_name}.txt\n"
-          f"with the shape: {website_response_all_info.shape}")
 
+if __name__ == '__main__':
+    cProfile.run('main()')
