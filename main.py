@@ -1,8 +1,10 @@
 import json
 import pandas as pd  # for working with dataframes
 import requests  # for sending POST requests
+import numpy as np
 import time
 import random
+
 
 # Categorize all items by their level.
 def group_by_level(tree_data: pd.DataFrame, level: int) -> dict:
@@ -97,10 +99,12 @@ for i in range(1, len(ids_group_all)):
         "url": all_values_by_id(id_group, "imageUrl")
     }
     rows_template.append(row_template)
+
 # Convert the list of dictionaries to a DataFrame
 overview_template = pd.DataFrame(rows_template,
                                  columns=["id_parent", "id_child", "id_group", "name_parent", "name_child",
                                           "name_group", "url"])
+#  %%% groups without children and parents are marked by
 overview_template.fillna(0, inplace=True)  # replaceing NaN
 overview_template["id_parent"] = overview_template["id_parent"].astype(int)  # convert to int
 overview_template["id_child"] = overview_template["id_child"].astype(int)  # convert to int
@@ -143,21 +147,40 @@ def header_request(id_group, page=1, pageSize=1000, sortType="sort_dredisprice_a
 #  %%% ID_GROUP HAS TO BE ADJUSTED
 # received_raw_data = header_request(5637, 1, 100, "rank")
 
-# %% loop over all "id_groups"
-test = []
-def map_category_generater():
-    mapping = {"Fresh": 4710, "World Food": 4712, "Electronics": 4718, "Food": 4722, "Household": 4763,
+def category_generator():
+    parents_category = {"Fresh": 4710, "World Food": 4712, "Electronics": 4718, "Food": 4722, "Household": 4763,
                "Health, Beauty": 4777, "Home Appliances": 4883, "Frozen": 4917, "Beverage": 4929, "Global": 5367,
-               "Pre-Prder": 5458, "Home Living": 5493 }
-    for key, value in mapping.items():
-        yield (key, value)
+               "Pre-Prder": 5458, "Home Living": 5493}
+    parents = list(parents_category.items())
+    return parents
 
 ###%%%%%%%%%%%%%%%%%%%%%%%% acess map_categorys by map_categorys[0][:] and use it in map_category function  AND use then use map cathegory in the for loop
-map_categorys = list(map_category_generater())
+# %%
+# OUTER LOOP OVER CATEGORIES
+parents_id_name_list = category_generator()  # getting main categories
+#parents_children:
+for i in parents_id_name_list:   # loop over all categories
+    map_category = [
+        overview_template[(overview_template["id_parent"] == 4710) & (overview_template["name_parent"] == "Fresh")][
+            "id_group"].values]
+    print(i[:])
 #%%
-map_category = {
+#prints all matches with Fresh
+#a = overview_template[(overview_template["id_parent"] == 4710) & (overview_template["name_parent"] == "Fresh")]
+l = (5252, 5291, 5268, 5279, 5251, 5299, 4886, 4885, 4898, 4911, 4908, 4906, 4913, 4920, 4918, 4921, 5028, 4797, 5100, 5408, 5027, 4932, 5217, 5218, 5219, 5215, 5216, 5246, 5128, 4961, 4958, 4960, 4959, 4956, 4957, 4973, 4963, 4966, 4974, 4976, 4965, 4967)
+overview_parents_ids = overview_template["id_parent"].unique()
+overview_children_ids = overview_template["id_child"].unique()
+overview_groups_ids = overview_template["id_group"].unique()
+overview_no_children = overview_template[tree_data["id"] == 0]
+
+ll = overview_template[overview_template["id_parent"].isin(list((0, 0, 0, 0)))]
+
+
+
+# %%
+map_category = [
     overview_template[(overview_template["id_parent"] == 4710) & (overview_template["name_parent"] == "Fresh")][
-        "id_group"].values}
+        "id_group"].values]
 large_table = []
 for i in range(len(overview_template[overview_template["id_parent"] == 4710])):
     try:
