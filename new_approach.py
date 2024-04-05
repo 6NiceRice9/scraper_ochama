@@ -92,36 +92,35 @@ raw_json.drop(columns=["children", "backgroundImg", "sort", "imageUrl"], inplace
 #  %%%% separated groups
 parents, _children, _groups, _groups_without_parents = split_in_groups(raw_json)
 
-#  %%
+#  %% looping here through all categories
 search_category = ["World Food", "Food", "Fresh", "Frozen", "Beverage", "Electronics", "Home Appliances", "Home Living", "Household", "Health", "Beauty", "Global", "Pre-order"]
-lis = []
-#%%
+lis = pd.DataFrame()
+#  %%
 for f in range(0, len(search_category)):  # search_category:
     search_term = search_category[f]
     #print(f"range:, {len(search_category)}, i: {i}")
     a, b, c, template_search_result_groupsgroups = search_results(search_term, parents, _children, _groups)
-    lis.append(template_search_result_groupsgroups)
+    lis = pd.concat([lis, template_search_result_groupsgroups], ignore_index=True)
+    #lis = lis.extend(template_search_result_groupsgroups)
+#%%
+print()
+
 
 #%%
-search_term = "Frozen"# out of [World Food, Food, Fresh, Frozen, Beverage, Electronics, Home Appliances, Home Living, Household, Health, Beauty, Global, Pre-order]
-_, _, _, template_search_result_groupsgroups = search_results(search_term, parents, _children, _groups)
+website_response_all_info = pd.DataFrame()
+for i in range(0, len(template_search_result_groupsgroups["id"])):
+    group_id = int(template_search_result_groupsgroups["id"].values[i])
+    website_response_raw = header_request(group_id, page=1, pageSize=1000, sortType="sort_dredisprice_asc") # request website for results
+    website_response_df = pd.DataFrame(website_response_raw.json()["content"])
+    website_response_product_incl_promo = all_products_incl_promo_optimized(website_response_raw)  # all products incl. promo
+    website_response_all_info = pd.concat([website_response_all_info, website_response_product_incl_promo], ignore_index=True) # merging all responses
+    ##delay
+    delay = random.uniform(1, 3)
+    print(f"Waiting {delay:.2f} seconds...")
+    time.sleep(4)
 
-
-#%%
-# website_response_all_info = pd.DataFrame()
-# for i in range(0, len(template_search_result_groupsgroups["id"])):
-#     group_id = int(template_search_result_groupsgroups["id"].values[i])
-#     website_response_raw = header_request(group_id, page=1, pageSize=1000, sortType="sort_dredisprice_asc") # request website for results
-#     website_response_df = pd.DataFrame(website_response_raw.json()["content"])
-#     website_response_product_incl_promo = all_products_incl_promo_optimized(website_response_raw)  # all products incl. promo
-#     website_response_all_info = pd.concat([website_response_all_info, website_response_product_incl_promo], ignore_index=True) # merging all responses
-#     ##delay
-#     delay = random.uniform(1, 3)
-#     print(f"Waiting {delay:.2f} seconds...")
-#     time.sleep(4)
-#
-# print("website_response_all_info shape: ", website_response_all_info.shape)
-# file_path = "C:/Users/NiceRice/git/scraper_ochama/scraper_ochama/ochama_products.txt"
-# sheet_name = search_term
-# website_response_all_info.to_csv(f"{sheet_name}.txt", index=False)
+print("website_response_all_info shape: ", website_response_all_info.shape)
+file_path = "C:/Users/NiceRice/git/scraper_ochama/scraper_ochama/ochama_products.txt"
+sheet_name = search_term
+website_response_all_info.to_csv(f"{sheet_name}.txt", index=False)
 
