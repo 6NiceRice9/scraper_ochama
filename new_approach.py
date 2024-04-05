@@ -102,7 +102,7 @@ max_inner_loop_steps = 0
 current_outer_loop = 0
 total_n_steps = 0
 current_inner_loop = 0
-reduced_category = 10
+reduced_category = 0
 
 for f in range(1, len(search_category)-reduced_category):  # search_category: "-11" to avoid "Global"
     search_term = search_category[f]
@@ -121,11 +121,11 @@ for f in range(1, len(search_category)-reduced_category):  # search_category: "-
         website_response_product_incl_promo = all_products_incl_promo_optimized(website_response_raw)  # all products incl. promo
         website_response_all_info = pd.concat([website_response_all_info, website_response_product_incl_promo], ignore_index=True) # merging all responses
         ##delay
-        delay = random.uniform(1, 3)
+        delay = random.uniform(1, 2)
         current_inner_loop += 1
         total_n_steps += 1
-        print(f"Waiting {delay:.2f} seconds... categorys: {max_outer_loop_steps}/{current_outer_loop} steps:{max_inner_loop_steps}/{current_inner_loop}, total steps: {total_n_steps}")
-        time.sleep(3)
+        print(f"Waiting {delay:.2f} seconds... categorys: {max_outer_loop_steps - 1}/{current_outer_loop} steps:{max_inner_loop_steps}/{current_inner_loop}, total steps: {total_n_steps}")
+        time.sleep(2)
 ####### after looping over first category, saving file to txt
     current_inner_loop = 0  #reset inner loop timer
     file_path = "C:/Users/NiceRice/git/scraper_ochama/scraper_ochama/ochama_products"
