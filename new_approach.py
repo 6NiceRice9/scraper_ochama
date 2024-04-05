@@ -10,20 +10,20 @@ from openpyxl import load_workbook
 
 
 def split_in_groups(raw_json: pd.DataFrame):
-    """Data sorting (find groups without children/parents)
+    """Data sorting based on "id" (find groups without children/parents)
     :param raw_json: DataFrame of raw imported data"""
     _parents_and_children = raw_json[
-        raw_json['id'].isin(raw_json['parentId'])]  # select: parents and children == exclude groups
-    parents = raw_json[
-        raw_json['id'].isin(_parents_and_children['parentId'])]  # select: parents == exclude chiren and groups
+        raw_json['id'].isin(raw_json['parentId'])]  # select: parents and _children == exclude groups
+    _parents = raw_json[
+        raw_json['id'].isin(_parents_and_children['parentId'])]  # select: _parents == exclude chiren and groups
     _excluded_groups = raw_json[~raw_json['parentId'].isin(
-        raw_json['id'])]  # select: id_parent which are not in id_ == parents and matches without parents
-    groups_without_parents = _excluded_groups[
-        ~_excluded_groups['id'].isin(parents['id'])]  # select: id_parent wouthout parents
-    children = _parents_and_children[_parents_and_children['parentId'].isin(parents['id'])]  # select:
+        raw_json['id'])]  # select: id_parent which are not in id_ == _parents and matches without _parents
+    _groups_without_parents = _excluded_groups[
+        ~_excluded_groups['id'].isin(_parents['id'])]  # select: id_parent wouthout _parents
+    _children = _parents_and_children[_parents_and_children['parentId'].isin(_parents['id'])]  # select:
     _groups = raw_json[~raw_json["id"].isin(_parents_and_children["id"])]
-    groups = _groups[~_groups["id"].isin(groups_without_parents["id"])]
-    return parents, children, groups, groups_without_parents
+    _groups = _groups[~_groups["id"].isin(_groups_without_parents["id"])]
+    return _parents, _children, _groups, _groups_without_parents
 
 
 def search_results(searching_term: str, parents: pd.DataFrame, children: pd.DataFrame, groups: pd.DataFrame) -> tuple[
@@ -33,13 +33,13 @@ def search_results(searching_term: str, parents: pd.DataFrame, children: pd.Data
     :param parents: DataFrame with all parents
     :param children: DataFrame with all children
     :param groups: DataFrame with all groups"""
-    searching_term = searching_term
-    looking_for_id_parent = parents[parents["name"] == searching_term].reset_index()  # parent row
-    looking_for_children = children[
-        children["parentId"].isin(looking_for_id_parent["id"])].reset_index()  # matching children to parent id
-    looking_for_groups = groups[
-        groups["parentId"].isin(looking_for_children["id"])].reset_index()  # match groups to children and parent
-    return searching_term, looking_for_id_parent, looking_for_children, looking_for_groups
+    _searching_term = searching_term
+    _looking_for_id_parent = parents[parents["name"] == searching_term].reset_index()  # parent row
+    _looking_for_children = children[
+        children["parentId"].isin(_looking_for_id_parent["id"])].reset_index()  # matching children to parent id
+    _looking_for_groups = groups[
+        groups["parentId"].isin(_looking_for_children["id"])].reset_index()  # match groups to children and parent
+    return searching_term, _looking_for_id_parent, _looking_for_children, _looking_for_groups
 
 
 def header_request(id_group: int, page=1, pageSize=1000, sortType="sort_dredisprice_asc"):
@@ -67,21 +67,19 @@ def header_request(id_group: int, page=1, pageSize=1000, sortType="sort_dredispr
                             json=data)  # the right way to send POST requests
     return request
 
-
-# %%
 def all_products_incl_promo(header_received) -> pd.DataFrame:
     """Nesting out the Promococed from the "promoList" column"""
-    header_received_list = header_received.json()["content"]
+    _header_received_list = header_received.json()["content"]
 
-    all_products = pd.DataFrame()
+    _all_products = pd.DataFrame()
     # Iterate over each item in the content list
-    for i in header_received_list:
-        row_in_main_table = pd.json_normalize(i)
-        row_in_promoList = pd.json_normalize(i['promoList'])
-        merged = pd.concat([row_in_main_table, row_in_promoList], axis=1)
-        all_products: pd.DataFrame = all_products._append(merged)
+    for i in _header_received_list:
+        _row_in_main_table = pd.json_normalize(i)
+        _row_in_promoList = pd.json_normalize(i['promoList'])
+        _merged = pd.concat([_row_in_main_table, _row_in_promoList], axis=1)
+        _all_products: pd.DataFrame = _all_products._append(_merged)
 
-    return all_products
+    return _all_products
 
 
 tree_path: str = 'ochama_structure.txt'
@@ -90,15 +88,18 @@ with open(tree_path, 'r') as f:
 raw_json.drop(columns=["children", "backgroundImg", "sort", "imageUrl"], inplace=True)  # remove unneeded columns
 
 #  %%%% separated groups
-parents, children, groups, group_without_parent = split_in_groups(raw_json)
+_parents, _children, _groups, _groups_without_parents = split_in_groups(raw_json)
 
 # %%
-_, _, groups, _ = search_results("Fresh", parents, children, groups)
+search_term = "Fresh"
+_, _, _, template_search_result_groupsgroups = search_results(search_term, _parents, _children, _groups)
 
 all_requests = pd.DataFrame()
-for i in range(30, len(looking_for_groups["id"])):
-    group_id = int(looking_for_groups["id"].values[i])
-    all_requests = pd.concat([all_requests, header_request(group_id)], ignore_index=True)
+for i in range(34, len(template_search_result_groupsgroups["id"])):
+    group_id = int(template_search_result_groupsgroups["id"].values[i])
+
+    #all_requests = pd.concat([all_requests, header_request(group_id, page=1, pageSize=1000)], ignore_index=True)
+    #all_products_incl_promo()
     ##delay
     delay = random.uniform(2, 5)
     print(f"Waiting {delay:.2f} seconds...")
