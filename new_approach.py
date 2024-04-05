@@ -5,7 +5,8 @@ import numpy as np
 import time
 import random
 from openpyxl import load_workbook
-#%%
+
+# %%
 
 tree_path: str = 'ochama_structure.txt'
 with open(tree_path, 'r') as f:
@@ -37,7 +38,9 @@ looking_for = "Fresh"
 looking_for_id_parent = parents[parents["name"] == "Fresh"].reset_index()  # parent row
 looking_for_children = children[
     children["parentId"].isin(looking_for_id_parent["id"])].reset_index()  # matching children to parent id
-looking_for_groups = groups[groups["parentId"].isin(looking_for_children["id"])].reset_index()  # match groups to children and parent
+looking_for_groups = groups[
+    groups["parentId"].isin(looking_for_children["id"])].reset_index()  # match groups to children and parent
+
 
 # %%
 # constructing tree
@@ -64,29 +67,28 @@ def header_request(id_group: int, page=1, pageSize=1000, sortType="sort_dredispr
 
     request = requests.post("https://www.ochama.com/api/v1/category/aggregate/sku", headers=headers,
                             json=data)  # the right way to send POST requests
-
-    #separate nested promolist
-    products = pd.json_normalize(request.json()["content"])
-    promolist = [pd.json_normalize(item['promoList']) for item in request.json()['content']]
     return request
-#%%
-
-header_received = header_request(5099)
-header_received_list = header_received.json()["content"]
-header_received_dtframe = pd.json_normalize(header_received.json()["content"])
-
-all_products_incl_promo = pd.DataFrame()
-# Iterate over each item in the content list
-for i in header_received_list:
-    row_in_main_table = pd.json_normalize(i)
-    row_in_promoList = pd.json_normalize(i['promoList'])
-    merged = pd.concat([row_in_main_table, row_in_promoList], axis=1)
-    all_products_incl_promo: pd.DataFrame = all_products_incl_promo._append(merged)
-
-print(all_products_incl_promo)
 
 
-#%%
+# %%
+def all_products_incl_promo(header_received) -> pd.DataFrame:
+    """Nesting out the Promococed from the "promoList" column"""
+    header_received_list = header_received.json()["content"]
+
+    all_products = pd.DataFrame()
+    # Iterate over each item in the content list
+    for i in header_received_list:
+        row_in_main_table = pd.json_normalize(i)
+        row_in_promoList = pd.json_normalize(i['promoList'])
+        merged = pd.concat([row_in_main_table, row_in_promoList], axis=1)
+        all_products: pd.DataFrame = all_products._append(merged)
+
+    return all_products
+
+
+# %%
+
+
 all_requests = pd.DataFrame()
 for i in range(30, len(looking_for_groups["id"])):
     group_id = int(looking_for_groups["id"].values[i])
@@ -96,18 +98,17 @@ for i in range(30, len(looking_for_groups["id"])):
     print(f"Waiting {delay:.2f} seconds...")
     time.sleep(5)
 
-
-#%%
+# %%
 
 file_path = "C:/Users/NiceRice/git/scraper_ochama/scraper_ochama/ochama_products.xlsx"
 sheet_name = looking_for
 all_requests.to_csv(f"{looking_for}.txt", index=False)
 
-
-#%%
+# %%
 group_id = 5099
 test_request = {group_id: header_request(group_id)}
 
-#%% filter data
+# %% filter data
 a = pd.DataFrame(test_request[group_id]["content"])
-b = pd.DataFrame(test_request[group_id]["content"])[["price", "basePrice", "largeImg", "stock", 'skuName', "brandName", "fresh", "largeProduct"]]
+b = pd.DataFrame(test_request[group_id]["content"])[
+    ["price", "basePrice", "largeImg", "stock", 'skuName', "brandName", "fresh", "largeProduct"]]
