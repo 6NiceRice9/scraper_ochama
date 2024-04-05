@@ -71,22 +71,22 @@ def header_request(id_group: int, page=1, pageSize=1000, sortType="sort_dredispr
     return request
 #%%
 
-data = header_request(5099)
+header_received = header_request(5099)
+header_received_list = header_received.json()["content"]
+header_received_dtframe = pd.json_normalize(header_received.json()["content"])
 
-# Extract the 'content' list from the JSON data
-content_list = data.json()['content']
-content_frame = pd.DataFrame(content_list)
-all_promos_df = pd.DataFrame()
+all_promos_df = pd.DataFrame()  # emtpry df
 # Iterate over each item in the content list
-for item in content_list:
+for i in header_received_list:
     # Normalize the 'promoList' of each item into a DataFrame and append it to the 'dataframes' list
-    df = pd.json_normalize(item['promoList'])
-    # get the right promoId
-    promoId = pd.DataFrame(content_frame["promoList"].values[0])["promoId"]
+    row_in_main_table = pd.json_normalize(i).reset_index(drop=True)
+    row_in_promoList = pd.json_normalize(i['promoList']).reset_index(drop=True)
+
+    #promoId = pd.DataFrame(header_received_dtframe["promoList"].values[0])["promoId"]
     # Add an identifier column to link back to the original 'content' item
-    # df["promoId"] = item["skuId"]
     # Append it to the 'all_promos_df' DataFrame
-    all_promos_df = pd.concat([all_promos_df, df], ignore_index=True)
+    merged = pd.concat([row_in_main_table, row_in_promoList], axis=1)
+    all_promos_df = all_promos_df._append(merged, ignore_index=False)
 
 print(all_promos_df)
 
