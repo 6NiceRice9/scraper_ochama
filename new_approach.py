@@ -67,19 +67,20 @@ def header_request(id_group: int, page=1, pageSize=1000, sortType="sort_dredispr
                             json=data)  # the right way to send POST requests
     return request
 
-def all_products_incl_promo(header_received) -> pd.DataFrame:
-    """Nesting out the Promococed from the "promoList" column"""
+def all_products_incl_promo_optimized(header_received) -> pd.DataFrame:
+    """Nesting out the Promocoded from the 'promoList' column with optimized approach."""
     _header_received_list = header_received.json()["content"]
 
-    _all_products = pd.DataFrame()
+    all_rows = []  # A list to collect DataFrame rows
     # Iterate over each item in the content list
-    for i in _header_received_list:
-        _row_in_main_table = pd.json_normalize(i)
-        _row_in_promoList = pd.json_normalize(i['promoList'])
+    for item in _header_received_list:
+        _row_in_main_table = pd.json_normalize(item).reset_index(drop=True)
+        _row_in_promoList = pd.json_normalize(item.get('promoList', [])).reset_index(drop=True)  # Use .get for safer access
         merged = pd.concat([_row_in_main_table, _row_in_promoList], axis=1)
-        _all_products: pd.DataFrame = _all_products.append(merged, ignore_index=True)
-    print(_all_products)
-    return _all_products
+        all_rows = all_rows.append(merged, ignore_index=False)
+
+   # _all_products = pd.concat(all_rows, ignore_index=True)
+    return all_rows
 
 
 tree_path: str = 'ochama_structure.txt'
@@ -99,15 +100,15 @@ for i in range(30, len(template_search_result_groupsgroups["id"])):
     group_id = int(template_search_result_groupsgroups["id"].values[i])
     website_response_raw = header_request(group_id, page=1, pageSize=1000, sortType="sort_dredisprice_asc") # request website for results
     website_response_df = pd.DataFrame(website_response_raw.json()["content"])
-    website_response_product_incl_promo = all_products_incl_promo(website_response_raw)  # all products incl. promo
-    website_response_all_info = pd.concat([website_response_df, website_response_product_incl_promo], ignore_index=True) # merging all responses
+    website_response_product_incl_promo = all_products_incl_promo_optimized(website_response_raw)  # all products incl. promo
+    website_response_all_info = pd.concat([website_response_all_info, website_response_product_incl_promo], ignore_index=True) # merging all responses
     ##delay
     delay = random.uniform(1, 3)
     print(f"Waiting {delay:.2f} seconds...")
     time.sleep(4)
 
 # %%
-
+print(website_response_all_info.shape)
 file_path = "C:/Users/NiceRice/git/scraper_ochama/scraper_ochama/ochama_products.xlsx"
 sheet_name = search_term
 website_response_all_info.to_csv(f"{sheet_name}.txt", index=False)
