@@ -12,18 +12,18 @@ from openpyxl import load_workbook
 def split_in_groups(raw_json: pd.DataFrame):
     """Data sorting based on "id" (find groups without children/parents)
     :param raw_json: DataFrame of raw imported data"""
-    _parents_and_children = raw_json[
+    parents_and_children = raw_json[
         raw_json['id'].isin(raw_json['parentId'])]  # select: parents and _children == exclude groups
-    _parents = raw_json[
-        raw_json['id'].isin(_parents_and_children['parentId'])]  # select: _parents == exclude chiren and groups
-    _excluded_groups = raw_json[~raw_json['parentId'].isin(
-        raw_json['id'])]  # select: id_parent which are not in id_ == _parents and matches without _parents
-    _groups_without_parents = _excluded_groups[
-        ~_excluded_groups['id'].isin(_parents['id'])]  # select: id_parent wouthout _parents
-    _children = _parents_and_children[_parents_and_children['parentId'].isin(_parents['id'])]  # select:
-    _groups = raw_json[~raw_json["id"].isin(_parents_and_children["id"])]
-    _groups = _groups[~_groups["id"].isin(_groups_without_parents["id"])]
-    return _parents, _children, _groups, _groups_without_parents
+    parents = raw_json[
+        raw_json['id'].isin(parents_and_children['parentId'])]  # select: parents == exclude chiren and groups
+    excluded_groups = raw_json[~raw_json['parentId'].isin(
+        raw_json['id'])]  # select: id_parent which are not in id_ == parents and matches without parents
+    groups_without_parents = excluded_groups[
+        ~excluded_groups['id'].isin(parents['id'])]  # select: id_parent wouthout parents
+    children = parents_and_children[parents_and_children['parentId'].isin(parents['id'])]  # select:
+    group = raw_json[~raw_json["id"].isin(parents_and_children["id"])]
+    group = group[~group["id"].isin(groups_without_parents["id"])]
+    return parents, children, group, groups_without_parents
 
 
 def search_results(searching_term: str, parents: pd.DataFrame, children: pd.DataFrame, groups: pd.DataFrame) -> tuple[
@@ -34,12 +34,12 @@ def search_results(searching_term: str, parents: pd.DataFrame, children: pd.Data
     :param children: DataFrame with all children
     :param groups: DataFrame with all groups"""
     _searching_term = searching_term
-    _looking_for_id_parent = parents[parents["name"] == searching_term].reset_index()  # parent row
-    _looking_for_children = children[
-        children["parentId"].isin(_looking_for_id_parent["id"])].reset_index()  # matching children to parent id
-    _looking_for_groups = groups[
-        groups["parentId"].isin(_looking_for_children["id"])].reset_index()  # match groups to children and parent
-    return searching_term, _looking_for_id_parent, _looking_for_children, _looking_for_groups
+    looking_for_id_parent = parents[parents["name"] == searching_term].reset_index()  # parent row
+    looking_for_children = children[
+        children["parentId"].isin(looking_for_id_parent["id"])].reset_index()  # matching children to parent id
+    looking_for_groups = groups[
+        groups["parentId"].isin(looking_for_children["id"])].reset_index()  # match groups to children and parent
+    return searching_term, looking_for_id_parent, looking_for_children, looking_for_groups
 
 
 def header_request(id_group: int, page=1, pageSize=1000, sortType="sort_dredisprice_asc") -> Any:
@@ -69,11 +69,11 @@ def header_request(id_group: int, page=1, pageSize=1000, sortType="sort_dredispr
 
 def all_products_incl_promo_optimized(header_received) -> pd.DataFrame:
     """Nesting out the Promocoded from the 'promoList' column with optimized approach."""
-    _header_received_list = header_received.json()["content"]
+    header_received_list = header_received.json()["content"]
 
     all_rows = pd.DataFrame()  # A list to collect DataFrame rows
     # Iterate over each item in the content list
-    for item in _header_received_list:
+    for item in header_received_list:
         _row_in_main_table = pd.json_normalize(item).reset_index(drop=True)
         #original: _row_in_promoList = pd.json_normalize(item.get('promoList', [])).reset_index(drop=True)  # Use .get for safer access
         #original: merged = pd.concat([_row_in_main_table, _row_in_promoList], axis=1)
@@ -90,26 +90,38 @@ with open(tree_path, 'r') as f:
 raw_json.drop(columns=["children", "backgroundImg", "sort", "imageUrl"], inplace=True)  # remove unneeded columns
 
 #  %%%% separated groups
-_parents, _children, _groups, _groups_without_parents = split_in_groups(raw_json)
+parents, _children, _groups, _groups_without_parents = split_in_groups(raw_json)
 
 #  %%
-search_term = "Frozen"
-_, _, _, template_search_result_groupsgroups = search_results(search_term, _parents, _children, _groups)
-#  %%
-website_response_all_info = pd.DataFrame()
-for i in range(0, len(template_search_result_groupsgroups["id"])):
-    group_id = int(template_search_result_groupsgroups["id"].values[i])
-    website_response_raw = header_request(group_id, page=1, pageSize=1000, sortType="sort_dredisprice_asc") # request website for results
-    website_response_df = pd.DataFrame(website_response_raw.json()["content"])
-    website_response_product_incl_promo = all_products_incl_promo_optimized(website_response_raw)  # all products incl. promo
-    website_response_all_info = pd.concat([website_response_all_info, website_response_product_incl_promo], ignore_index=True) # merging all responses
-    ##delay
-    delay = random.uniform(1, 3)
-    print(f"Waiting {delay:.2f} seconds...")
-    time.sleep(4)
+search_category = ["World Food", "Food", "Fresh", "Frozen", "Beverage", "Electronics", "Home Appliances", "Home Living", "Household", "Health", "Beauty", "Global", "Pre-order"]
+lis = []
+#%%
+for f in range(0, len(search_category)):  # search_category:
+    search_term = search_category[f]
+    #print(f"range:, {len(search_category)}, i: {i}")
+    a, b, c, template_search_result_groupsgroups = search_results(search_term, parents, _children, _groups)
+    lis.append(template_search_result_groupsgroups)
 
-print("website_response_all_info shape: ", website_response_all_info.shape)
-file_path = "C:/Users/NiceRice/git/scraper_ochama/scraper_ochama/ochama_products.txt"
-sheet_name = search_term
-website_response_all_info.to_csv(f"{sheet_name}.txt", index=False)
+#%%
+search_term = "Frozen"# out of [World Food, Food, Fresh, Frozen, Beverage, Electronics, Home Appliances, Home Living, Household, Health, Beauty, Global, Pre-order]
+_, _, _, template_search_result_groupsgroups = search_results(search_term, parents, _children, _groups)
+
+
+#%%
+# website_response_all_info = pd.DataFrame()
+# for i in range(0, len(template_search_result_groupsgroups["id"])):
+#     group_id = int(template_search_result_groupsgroups["id"].values[i])
+#     website_response_raw = header_request(group_id, page=1, pageSize=1000, sortType="sort_dredisprice_asc") # request website for results
+#     website_response_df = pd.DataFrame(website_response_raw.json()["content"])
+#     website_response_product_incl_promo = all_products_incl_promo_optimized(website_response_raw)  # all products incl. promo
+#     website_response_all_info = pd.concat([website_response_all_info, website_response_product_incl_promo], ignore_index=True) # merging all responses
+#     ##delay
+#     delay = random.uniform(1, 3)
+#     print(f"Waiting {delay:.2f} seconds...")
+#     time.sleep(4)
+#
+# print("website_response_all_info shape: ", website_response_all_info.shape)
+# file_path = "C:/Users/NiceRice/git/scraper_ochama/scraper_ochama/ochama_products.txt"
+# sheet_name = search_term
+# website_response_all_info.to_csv(f"{sheet_name}.txt", index=False)
 
