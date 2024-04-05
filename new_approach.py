@@ -64,8 +64,29 @@ def header_request(id_group: int, page=1, pageSize=1000, sortType="sort_dredispr
 
     request = requests.post("https://www.ochama.com/api/v1/category/aggregate/sku", headers=headers,
                             json=data)  # the right way to send POST requests
-    return pd.DataFrame(request.json()["content"])
 
+    #separate nested promolist
+    products = pd.json_normalize(request.json()["content"])
+    promolist = [pd.json_normalize(item['promoList']) for item in request.json()['content']]
+    return request
+    #return pd.json_normalize(request.json()["content"])
+    #%%
+
+data = header_request(5099)
+# Load the main data into a DataFrame
+df = pd.DataFrame(data)
+
+# Assuming each item in your main data list only contains one promoList,
+# we can extract and normalize this nested structure like so:
+promo_list_dfs = [pd.json_normalize(item['promoList']) for item in data.json()['content']]
+
+# If you want to work with the first product's promoList as an example:
+promo_df = promo_list_dfs[0]
+
+print(promo_df)
+
+
+#%%
 all_requests = pd.DataFrame()
 for i in range(30, len(looking_for_groups["id"])):
     group_id = int(looking_for_groups["id"].values[i])
