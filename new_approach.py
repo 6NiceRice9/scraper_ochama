@@ -94,16 +94,14 @@ parents, _children, _groups, _groups_without_parents = split_in_groups(raw_json)
 
 #  %% looping here through all categories
 search_category = ["World Food", "Food", "Fresh", "Frozen", "Beverage", "Electronics", "Home Appliances", "Home Living", "Household", "Health", "Beauty", "Global", "Pre-order"]
-lis = pd.DataFrame()
+all_group_ids_matching_search_criteria = pd.DataFrame()
 #  %%
-for f in range(0, len(search_category)):  # search_category:
+for f in range(1, len(search_category)-11):  # search_category: "-11" to avoid "Global"
     search_term = search_category[f]
     #print(f"range:, {len(search_category)}, i: {i}")
     a, b, c, template_search_result_groupsgroups = search_results(search_term, parents, _children, _groups)
-    lis = pd.concat([lis, template_search_result_groupsgroups], ignore_index=True)
-    #lis = lis.extend(template_search_result_groupsgroups)
-#%%
-print()
+    all_group_ids_matching_search_criteria = pd.concat([all_group_ids_matching_search_criteria, template_search_result_groupsgroups], ignore_index=True)
+    #all_group_ids_matching_search_criteria = all_group_ids_matching_search_criteria.extend(template_search_result_groupsgroups)
 
 
 #%%
