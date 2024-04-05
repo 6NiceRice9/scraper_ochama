@@ -75,20 +75,15 @@ header_received = header_request(5099)
 header_received_list = header_received.json()["content"]
 header_received_dtframe = pd.json_normalize(header_received.json()["content"])
 
-all_promos_df = pd.DataFrame()  # emtpry df
+all_products_incl_promo = pd.DataFrame()
 # Iterate over each item in the content list
 for i in header_received_list:
-    # Normalize the 'promoList' of each item into a DataFrame and append it to the 'dataframes' list
-    row_in_main_table = pd.json_normalize(i).reset_index(drop=True)
-    row_in_promoList = pd.json_normalize(i['promoList']).reset_index(drop=True)
-
-    #promoId = pd.DataFrame(header_received_dtframe["promoList"].values[0])["promoId"]
-    # Add an identifier column to link back to the original 'content' item
-    # Append it to the 'all_promos_df' DataFrame
+    row_in_main_table = pd.json_normalize(i)
+    row_in_promoList = pd.json_normalize(i['promoList'])
     merged = pd.concat([row_in_main_table, row_in_promoList], axis=1)
-    all_promos_df = all_promos_df._append(merged, ignore_index=False)
+    all_products_incl_promo: pd.DataFrame = all_products_incl_promo._append(merged)
 
-print(all_promos_df)
+print(all_products_incl_promo)
 
 
 #%%
