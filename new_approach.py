@@ -101,8 +101,7 @@ total_outer_loop_steps = []
 total_inner_loop_steps = []
 total_n_steps = []
 current_step = 0
-reduced_category = 10
-
+reduced_category = 11
 
 for f in range(1, len(search_category)-reduced_category):  # search_category: "-11" to avoid "Global"
     search_term = search_category[f]
@@ -127,7 +126,7 @@ for f in range(1, len(search_category)-reduced_category):  # search_category: "-
         print(f"Waiting {delay:.2f} seconds... categorys: {total_outer_loop_steps} steps:{total_n_steps}/{current_step}")
         time.sleep(3)
 ####### after looping over first category, saving file to txt
-    file_path = "C:/Users/NiceRice/git/scraper_ochama/scraper_ochama/ochama_products.txt"
+    file_path = "C:/Users/NiceRice/git/scraper_ochama/scraper_ochama/ochama_products"
     sheet_name = search_term
     website_response_all_info.to_csv(f"{sheet_name}.txt", index=False)
     print(f"Saved: {sheet_name}.txt\n"
