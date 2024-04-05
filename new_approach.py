@@ -76,9 +76,9 @@ def all_products_incl_promo(header_received) -> pd.DataFrame:
     for i in _header_received_list:
         _row_in_main_table = pd.json_normalize(i)
         _row_in_promoList = pd.json_normalize(i['promoList'])
-        _merged = pd.concat([_row_in_main_table, _row_in_promoList], axis=1)
-        _all_products: pd.DataFrame = _all_products._append(_merged)
-
+        merged = pd.concat([_row_in_main_table, _row_in_promoList], axis=1)
+        _all_products: pd.DataFrame = _all_products.append(merged, ignore_index=True)
+    print(_all_products)
     return _all_products
 
 
@@ -94,7 +94,7 @@ _parents, _children, _groups, _groups_without_parents = split_in_groups(raw_json
 search_term = "Fresh"
 _, _, _, template_search_result_groupsgroups = search_results(search_term, _parents, _children, _groups)
 #%%
-#all_requests = pd.DataFrame()
+website_response_all_info = pd.DataFrame()
 for i in range(30, len(template_search_result_groupsgroups["id"])):
     group_id = int(template_search_result_groupsgroups["id"].values[i])
     website_response_raw = header_request(group_id, page=1, pageSize=1000, sortType="sort_dredisprice_asc") # request website for results
@@ -102,9 +102,9 @@ for i in range(30, len(template_search_result_groupsgroups["id"])):
     website_response_product_incl_promo = all_products_incl_promo(website_response_raw)  # all products incl. promo
     website_response_all_info = pd.concat([website_response_df, website_response_product_incl_promo], ignore_index=True) # merging all responses
     ##delay
-    delay = random.uniform(2, 5)
+    delay = random.uniform(1, 3)
     print(f"Waiting {delay:.2f} seconds...")
-    time.sleep(5)
+    time.sleep(4)
 
 # %%
 
