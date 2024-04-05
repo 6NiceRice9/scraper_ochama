@@ -75,9 +75,10 @@ def all_products_incl_promo_optimized(header_received) -> pd.DataFrame:
     # Iterate over each item in the content list
     for item in _header_received_list:
         _row_in_main_table = pd.json_normalize(item).reset_index(drop=True)
-        _row_in_promoList = pd.json_normalize(item.get('promoList', [])).reset_index(drop=True)  # Use .get for safer access
-        merged = pd.concat([_row_in_main_table, _row_in_promoList], axis=1)
-        all_rows = all_rows._append(merged, ignore_index=False)
+        #original: _row_in_promoList = pd.json_normalize(item.get('promoList', [])).reset_index(drop=True)  # Use .get for safer access
+        #original: merged = pd.concat([_row_in_main_table, _row_in_promoList], axis=1)
+        #original: all_rows = all_rows._append(merged, ignore_index=False)
+        all_rows = all_rows._append(_row_in_main_table, ignore_index=False)
     print(all_rows)
    # _all_products = pd.concat(all_rows, ignore_index=True)
     return all_rows
@@ -91,12 +92,12 @@ raw_json.drop(columns=["children", "backgroundImg", "sort", "imageUrl"], inplace
 #  %%%% separated groups
 _parents, _children, _groups, _groups_without_parents = split_in_groups(raw_json)
 
-# %%
-search_term = "Fresh"
+#  %%
+search_term = "Frozen"
 _, _, _, template_search_result_groupsgroups = search_results(search_term, _parents, _children, _groups)
-#%%
+#  %%
 website_response_all_info = pd.DataFrame()
-for i in range(30, len(template_search_result_groupsgroups["id"])):
+for i in range(0, len(template_search_result_groupsgroups["id"])):
     group_id = int(template_search_result_groupsgroups["id"].values[i])
     website_response_raw = header_request(group_id, page=1, pageSize=1000, sortType="sort_dredisprice_asc") # request website for results
     website_response_df = pd.DataFrame(website_response_raw.json()["content"])
@@ -107,11 +108,8 @@ for i in range(30, len(template_search_result_groupsgroups["id"])):
     print(f"Waiting {delay:.2f} seconds...")
     time.sleep(4)
 
-# %%
-print(website_response_all_info.shape)
-file_path = "C:/Users/NiceRice/git/scraper_ochama/scraper_ochama/ochama_products.xlsx"
+print("website_response_all_info shape: ", website_response_all_info.shape)
+file_path = "C:/Users/NiceRice/git/scraper_ochama/scraper_ochama/ochama_products.txt"
 sheet_name = search_term
 website_response_all_info.to_csv(f"{sheet_name}.txt", index=False)
 
-# %%
-group_id = 5099
