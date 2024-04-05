@@ -97,14 +97,23 @@ search_category = ["World Food", "Food", "Fresh", "Frozen", "Beverage", "Electro
 all_group_ids_matching_search_criteria = pd.DataFrame()
 template_search_result_groupsgroups = pd.DataFrame()
 
-for f in range(1, len(search_category)-11):  # search_category: "-11" to avoid "Global"
+total_outer_loop_steps = []
+total_inner_loop_steps = []
+total_n_steps = []
+current_step = 0
+reduced_category = 10
+
+
+for f in range(1, len(search_category)-reduced_category):  # search_category: "-11" to avoid "Global"
     search_term = search_category[f]
     a, b, c, template_search_result_groupsgroups = search_results(search_term, parents, _children, _groups)
     all_group_ids_matching_search_criteria = pd.concat([all_group_ids_matching_search_criteria, template_search_result_groupsgroups], ignore_index=True)
 ####### all_group_ids_matching_search_criteria = all_group_ids_matching_search_criteria.extend(template_search_result_groupsgroups)
-
 ####### request website for results & save after each iteration after one category iteration to txt file
     website_response_all_info = pd.DataFrame()
+    total_outer_loop_steps = len(search_category) - reduced_category   # left over steps
+    total_inner_loop_steps = len(template_search_result_groupsgroups["id"])  # for the counter im terminal
+    total_n_steps = total_outer_loop_steps * total_inner_loop_steps
     for i in range(0, len(template_search_result_groupsgroups["id"])):
         group_id = int(template_search_result_groupsgroups["id"].values[i])
         website_response_raw = header_request(group_id, page=1, pageSize=1000, sortType="sort_dredisprice_asc") # request website for results
@@ -113,7 +122,9 @@ for f in range(1, len(search_category)-11):  # search_category: "-11" to avoid "
         website_response_all_info = pd.concat([website_response_all_info, website_response_product_incl_promo], ignore_index=True) # merging all responses
         ##delay
         delay = random.uniform(1, 3)
-        print(f"Waiting {delay:.2f} seconds...")
+        current_step += 1
+        left_over_steps = int(len(search_category) * total_inner_loop_steps - current_step)
+        print(f"Waiting {delay:.2f} seconds... categorys: {total_outer_loop_steps} steps:{total_n_steps}/{current_step}")
         time.sleep(3)
 ####### after looping over first category, saving file to txt
     file_path = "C:/Users/NiceRice/git/scraper_ochama/scraper_ochama/ochama_products.txt"
